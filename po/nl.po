@@ -1,0 +1,126 @@
+# Dutch translation for Wirefox
+# Copyright (C) 2026 Daniël Vos
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: wirefox 0.2.0\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "{s}s ago"
+msgstr "{s}s geleden"
+
+msgid "{m}m ago"
+msgstr "{m}m geleden"
+
+msgid "{h}h ago"
+msgstr "{h}u geleden"
+
+msgid "Save"
+msgstr "Opslaan"
+
+msgid "Save failed"
+msgstr "Opslaan mislukt"
+
+msgid "No tunnels"
+msgstr "Geen tunnels"
+
+msgid "Import a .conf file or create a new tunnel.\nConfigs live in {CONF_DIR}"
+msgstr "Importeer een .conf-bestand of maak een nieuwe tunnel.\nConfigs staan in {CONF_DIR}"
+
+msgid "Active"
+msgstr "Actief"
+
+msgid "Missing config"
+msgstr "Configuratie ontbreekt"
+
+msgid "Inactive"
+msgstr "Inactief"
+
+msgid "AllowedIPs catches all traffic but no DNS is set — possible DNS leak"
+msgstr "AllowedIPs vangt al het verkeer maar er is geen DNS ingesteld — mogelijke DNS-lek"
+
+msgid "Edit config"
+msgstr "Configuratie bewerken"
+
+msgid "Delete tunnel"
+msgstr "Tunnel verwijderen"
+
+msgid "Import .conf"
+msgstr ".conf importeren"
+
+msgid "Import .zip bundle"
+msgstr ".zip-bundel importeren"
+
+msgid "New tunnel"
+msgstr "Nieuwe tunnel"
+
+msgid "Start on login"
+msgstr "Starten bij aanmelden"
+
+msgid "Show Wirefox"
+msgstr "Wirefox tonen"
+
+msgid "Quit"
+msgstr "Afsluiten"
+
+msgid "Autostart enabled"
+msgstr "Autostart ingeschakeld"
+
+msgid "Autostart disabled"
+msgstr "Autostart uitgeschakeld"
+
+msgid "No local config — opening template in editor"
+msgstr "Geen lokale config — sjabloon openen in editor"
+
+msgid "Saved {name}.conf"
+msgstr "{name}.conf opgeslagen"
+
+msgid "Delete {name}?"
+msgstr "{name} verwijderen?"
+
+msgid "Removes the tunnel from NetworkManager and deletes the local config file."
+msgstr "Verwijdert de tunnel uit NetworkManager en wist het lokale configuratiebestand."
+
+msgid "Cancel"
+msgstr "Annuleren"
+
+msgid "Delete"
+msgstr "Verwijderen"
+
+msgid "Interface name (max 15 characters)"
+msgstr "Interfacenaam (max. 15 tekens)"
+
+msgid "Create"
+msgstr "Aanmaken"
+
+msgid "Invalid name — letters/digits/_=+.- max 15 chars"
+msgstr "Ongeldige naam — letters/cijfers/_=+.- max. 15 tekens"
+
+msgid "{name} already exists"
+msgstr "{name} bestaat al"
+
+msgid "Import WireGuard config"
+msgstr "WireGuard-configuratie importeren"
+
+msgid "Filename must be a valid interface name (max 15 chars)"
+msgstr "Bestandsnaam moet een geldige interfacenaam zijn (max. 15 tekens)"
+
+msgid "Import WireGuard .zip bundle"
+msgstr "WireGuard .zip-bundel importeren"
+
+msgid "Not a valid ZIP file"
+msgstr "Geen geldig ZIP-bestand"
+
+msgid "{n} imported"
+msgstr "{n} geïmporteerd"
+
+msgid "{n} skipped"
+msgstr "{n} overgeslagen"
+
+msgid "Nothing imported"
+msgstr "Niets geïmporteerd"

@@ -1,0 +1,594 @@
+#!/usr/bin/env python3
+"""
+Wirefox — rootless WireGuard GUI (GTK4) for Debian/Ubuntu.
+
+Uses NetworkManager as backend so no root rights are needed.
+Configs are stored user-editable in ~/.config/wirefox/.
+
+Dependencies:
+    sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 network-manager
+
+Usage:
+    wirefox [--version]
+
+License: GPL-3.0-or-later
+"""
+
+import gettext
+import os
+import re
+import subprocess
+import sys
+import threading
+import time
+import zipfile
+
+import gi
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Gtk, Adw, GLib, Gio
+
+VERSION    = "0.1.1"
+APP_ID     = "nl.voxfox.Wirefox"
+CONF_DIR   = os.path.expanduser("~/.config/wirefox")
+LOCALE_DIR = "/usr/share/locale"
+REFRESH_S  = 4
+
+# ---------------------------------------------------------------- i18n
+
+gettext.bindtextdomain("wirefox", LOCALE_DIR)
+gettext.textdomain("wirefox")
+_ = gettext.gettext
+
+TEMPLATE = """\
+[Interface]
+PrivateKey = <private key>
+Address = 10.0.0.2/32
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = <server public key>
+Endpoint = vpn.example.com:51820
+AllowedIPs = 0.0.0.0/0, ::/0
+PersistentKeepalive = 25
+"""
+
+# ---------------------------------------------------------------- nmcli
+
+def _run(cmd, timeout=15):
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return p.returncode == 0, (p.stdout + p.stderr).strip()
+    except Exception as exc:
+        return False, str(exc)
+
+
+def nmcli(*args, timeout=15):
+    return _run(["nmcli", "--escape", "no"] + list(args), timeout=timeout)
+
+
+def nm_wireguard_connections():
+    """{name: active_bool} — only wireguard connections."""
+    ok, out = nmcli("-t", "-f", "NAME,TYPE,ACTIVE", "connection", "show")
+    conns = {}
+    if ok:
+        for line in out.splitlines():
+            parts = line.rsplit(":", 2)
+            if len(parts) == 3 and parts[1] == "wireguard":
+                conns[parts[0]] = (parts[2] == "yes")
+    return conns
+
+
+def nm_connection_details(name):
+    """Return (iface, ipv4) in a single nmcli call."""
+    ok, out = nmcli("-g", "connection.interface-name,IP4.ADDRESS",
+                    "connection", "show", name)
+    if not ok or not out:
+        return name, ""
+    lines = [l.strip() for l in out.splitlines()]
+    iface = lines[0] if lines else name
+    ip    = lines[1].split("|")[0] if len(lines) > 1 else ""
+    return iface or name, ip
+
+
+# ---------------------------------------------------------------- handshake (async)
+
+_handshake_cache: dict = {}
+_handshake_lock = threading.Lock()
+
+
+def _fetch_handshake_async(iface):
+    def worker():
+        ok, out = _run(["wg", "show", iface, "latest-handshakes"], timeout=5)
+        result = None
+        if ok:
+            for line in out.splitlines():
+                parts = line.split()
+                if len(parts) >= 2:
+                    try:
+                        ts = int(parts[1])
+                        if ts:
+                            result = int(time.time()) - ts
+                    except ValueError:
+                        pass
+        with _handshake_lock:
+            _handshake_cache[iface] = (time.monotonic(), result)
+    threading.Thread(target=worker, daemon=True).start()
+
+
+def get_handshake_cached(iface):
+    with _handshake_lock:
+        entry = _handshake_cache.get(iface)
+    if entry is None or (time.monotonic() - entry[0]) > REFRESH_S:
+        _fetch_handshake_async(iface)
+    return entry[1] if entry else None
+
+
+def fmt_handshake(seconds):
+    if seconds is None:
+        return ""
+    if seconds < 120:
+        return _("{s}s ago").format(s=seconds)
+    if seconds < 3600:
+        return _("{m}m ago").format(m=seconds // 60)
+    return _("{h}h ago").format(h=seconds // 3600)
+
+
+# ---------------------------------------------------------------- helpers
+
+def local_configs():
+    os.makedirs(CONF_DIR, exist_ok=True)
+    return sorted(f[:-5] for f in os.listdir(CONF_DIR) if f.endswith(".conf"))
+
+
+def conf_path(name):
+    return os.path.join(CONF_DIR, name + ".conf")
+
+
+def valid_name(name):
+    return bool(re.fullmatch(r"[a-zA-Z0-9_=+.\-]{1,15}", name))
+
+
+def human_bytes(n):
+    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
+        if n < 1024 or unit == "TiB":
+            return f"{int(n)} B" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+
+
+def iface_traffic(iface):
+    try:
+        base = f"/sys/class/net/{iface}/statistics"
+        rx = int(open(f"{base}/rx_bytes").read())
+        tx = int(open(f"{base}/tx_bytes").read())
+        return rx, tx
+    except OSError:
+        return None
+
+
+def has_dns_leak_risk(name):
+    path = conf_path(name)
+    if not os.path.exists(path):
+        return False
+    try:
+        text = open(path).read()
+    except OSError:
+        return False
+    catches_all = re.search(r"AllowedIPs\s*=.*0\.0\.0\.0/0", text)
+    has_dns     = re.search(r"^\s*DNS\s*=", text, re.MULTILINE)
+    return bool(catches_all and not has_dns)
+
+
+# ---------------------------------------------------------------- editor
+
+class EditorWindow(Adw.Window):
+    def __init__(self, parent, name, on_saved):
+        super().__init__(transient_for=parent, modal=True,
+                         default_width=620, default_height=520,
+                         title=f"{name}.conf")
+        self.name     = name
+        self.on_saved = on_saved
+
+        view     = Adw.ToolbarView()
+        header   = Adw.HeaderBar()
+        save_btn = Gtk.Button(label=_("Save"))
+        save_btn.add_css_class("suggested-action")
+        save_btn.connect("clicked", self.save)
+        header.pack_end(save_btn)
+        view.add_top_bar(header)
+
+        self.buffer = Gtk.TextBuffer()
+        try:
+            self.buffer.set_text(open(conf_path(name)).read())
+        except FileNotFoundError:
+            self.buffer.set_text(TEMPLATE)
+
+        tv = Gtk.TextView(buffer=self.buffer, monospace=True,
+                          top_margin=12, bottom_margin=12,
+                          left_margin=12, right_margin=12,
+                          wrap_mode=Gtk.WrapMode.NONE)
+        view.set_content(Gtk.ScrolledWindow(child=tv, vexpand=True))
+        self.set_content(view)
+
+        ctrl = Gtk.EventControllerKey()
+        ctrl.connect("key-pressed", self._on_key)
+        self.add_controller(ctrl)
+
+    def _on_key(self, _ctrl, keyval, _code, state):
+        if keyval in (ord("s"), ord("S")) and (
+                state & Gtk.accelerators_get_default_mod_mask()):
+            self.save(None)
+            return True
+        return False
+
+    def save(self, _btn):
+        s, e = self.buffer.get_bounds()
+        text = self.buffer.get_text(s, e, True)
+        os.makedirs(CONF_DIR, exist_ok=True)
+        try:
+            with open(conf_path(self.name), "w") as f:
+                f.write(text)
+            os.chmod(conf_path(self.name), 0o600)
+        except OSError as exc:
+            d = Adw.AlertDialog(heading=_("Save failed"), body=str(exc))
+            d.add_response("ok", "OK")
+            d.present(self)
+            return
+        self.on_saved(self.name)
+        self.close()
+
+
+# ---------------------------------------------------------------- main window
+
+class MainWindow(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="Wirefox",
+                         default_width=580, default_height=460)
+        self.rows = {}
+        self.toast_overlay = Adw.ToastOverlay()
+
+        view   = Adw.ToolbarView()
+        header = Adw.HeaderBar()
+
+        btn_new = Gtk.Button(icon_name="document-new-symbolic",
+                             tooltip_text=_("New tunnel"))
+        btn_new.connect("clicked", self.new_tunnel)
+        header.pack_start(btn_new)
+
+        btn_imp = Gtk.Button(icon_name="document-open-symbolic",
+                             tooltip_text=_("Import .conf"))
+        btn_imp.connect("clicked", self.import_conf)
+        header.pack_start(btn_imp)
+
+        btn_zip = Gtk.Button(icon_name="package-x-generic-symbolic",
+                             tooltip_text=_("Import .zip bundle"))
+        btn_zip.connect("clicked", self.import_zip)
+        header.pack_start(btn_zip)
+
+        view.add_top_bar(header)
+
+        self.listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        self.listbox.add_css_class("boxed-list")
+
+        clamp = Adw.Clamp(child=self.listbox, maximum_size=640,
+                          margin_top=18, margin_bottom=18,
+                          margin_start=12, margin_end=12)
+
+        self.status_page = Adw.StatusPage(
+            title=_("No tunnels"),
+            description=_(f"Import a .conf file or create a new tunnel.\n"
+                          f"Configs live in {CONF_DIR}"),
+            icon_name="network-vpn-symbolic",
+        )
+
+        self.stack = Gtk.Stack()
+        self.stack.add_named(
+            Gtk.ScrolledWindow(child=clamp, vexpand=True), "list")
+        self.stack.add_named(self.status_page, "empty")
+
+        self.toast_overlay.set_child(self.stack)
+        view.set_content(self.toast_overlay)
+        self.set_content(view)
+
+        self.rebuild()
+        GLib.timeout_add_seconds(REFRESH_S, self._tick)
+
+    def _all_tunnels(self):
+        nm = nm_wireguard_connections()
+        return sorted(set(local_configs()) | set(nm)), nm
+
+    def rebuild(self):
+        while (child := self.listbox.get_first_child()):
+            self.listbox.remove(child)
+        self.rows = {}
+
+        names, nm = self._all_tunnels()
+        self.stack.set_visible_child_name("list" if names else "empty")
+
+        for name in names:
+            row = Adw.ActionRow(title=name)
+            row.set_subtitle("…")
+
+            if has_dns_leak_risk(name):
+                warn = Gtk.Image(
+                    icon_name="dialog-warning-symbolic",
+                    tooltip_text=_(
+                        "AllowedIPs catches all traffic but no DNS is set"
+                        " — possible DNS leak"),
+                    valign=Gtk.Align.CENTER,
+                )
+                warn.add_css_class("warning")
+                row.add_prefix(warn)
+
+            edit_btn = Gtk.Button(icon_name="document-edit-symbolic",
+                                  valign=Gtk.Align.CENTER,
+                                  tooltip_text=_("Edit config"))
+            edit_btn.add_css_class("flat")
+            edit_btn.connect("clicked", self._edit_tunnel, name)
+
+            del_btn = Gtk.Button(icon_name="user-trash-symbolic",
+                                 valign=Gtk.Align.CENTER,
+                                 tooltip_text=_("Delete tunnel"))
+            del_btn.add_css_class("flat")
+            del_btn.connect("clicked", self._delete_tunnel, name)
+
+            switch = Gtk.Switch(valign=Gtk.Align.CENTER,
+                                active=nm.get(name, False))
+            switch.connect("notify::active", self._on_switch, name)
+
+            row.add_suffix(edit_btn)
+            row.add_suffix(del_btn)
+            row.add_suffix(switch)
+            row.set_activatable_widget(switch)
+            self.listbox.append(row)
+            self.rows[name] = (row, switch)
+
+        self._update_rows(nm)
+
+    def _update_rows(self, nm=None):
+        if nm is None:
+            nm = nm_wireguard_connections()
+        for name, (row, switch) in self.rows.items():
+            active = nm.get(name, False)
+            switch.handler_block_by_func(self._on_switch)
+            switch.set_active(active)
+            switch.handler_unblock_by_func(self._on_switch)
+            if active:
+                iface, ip = nm_connection_details(name)
+                parts = []
+                if ip:
+                    parts.append(ip)
+                t = iface_traffic(iface)
+                if t:
+                    parts.append(
+                        f"↓ {human_bytes(t[0])}  ↑ {human_bytes(t[1])}")
+                hs = fmt_handshake(get_handshake_cached(iface))
+                if hs:
+                    parts.append(f"🤝 {hs}")
+                subtitle = _("Active")
+                if parts:
+                    subtitle += " — " + "  ·  ".join(parts)
+                row.set_subtitle(subtitle)
+            elif name not in nm and not os.path.exists(conf_path(name)):
+                row.set_subtitle(_("Missing config"))
+            else:
+                row.set_subtitle(_("Inactive"))
+        return True
+
+    def _tick(self):
+        self._update_rows()
+        return True
+
+    def toast(self, msg):
+        self.toast_overlay.add_toast(Adw.Toast(title=msg, timeout=4))
+
+    def _on_switch(self, switch, _pspec, name):
+        switch.set_sensitive(False)
+        want_up = switch.get_active()
+        nm = nm_wireguard_connections()
+
+        def do_it():
+            if want_up:
+                if name not in nm:
+                    ok, out = nmcli("connection", "import", "type",
+                                    "wireguard", "file", conf_path(name))
+                    if not ok:
+                        GLib.idle_add(self.toast, f"Import failed: {out}")
+                        GLib.idle_add(switch.set_sensitive, True)
+                        GLib.idle_add(self._update_rows)
+                        return
+                ok, out = nmcli("connection", "up", name)
+            else:
+                ok, out = nmcli("connection", "down", name)
+            if not ok:
+                msg = out.splitlines()[-1] if out else "nmcli failed"
+                GLib.idle_add(self.toast, msg)
+            GLib.idle_add(switch.set_sensitive, True)
+            GLib.idle_add(self._update_rows)
+
+        threading.Thread(target=do_it, daemon=True).start()
+
+    def _reimport(self, name):
+        nm = nm_wireguard_connections()
+        was_active = nm.get(name, False)
+        if name in nm:
+            nmcli("connection", "delete", name)
+        ok, out = nmcli("connection", "import", "type", "wireguard",
+                        "file", conf_path(name))
+        if not ok:
+            self.toast(f"Import failed: {out}")
+        elif was_active:
+            nmcli("connection", "up", name)
+        self.rebuild()
+        self.toast(_("Saved {name}.conf").format(name=name))
+
+    def _edit_tunnel(self, _btn, name):
+        if not os.path.exists(conf_path(name)):
+            self.toast(_("No local config — opening template in editor"))
+        EditorWindow(self, name, self._reimport).present()
+
+    def _delete_tunnel(self, _btn, name):
+        d = Adw.AlertDialog(
+            heading=_("Delete {name}?").format(name=name),
+            body=_("Removes the tunnel from NetworkManager and "
+                   "deletes the local config file."),
+        )
+        d.add_response("cancel", _("Cancel"))
+        d.add_response("delete", _("Delete"))
+        d.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def on_response(_d, response):
+            if response != "delete":
+                return
+            nmcli("connection", "down", name)
+            nmcli("connection", "delete", name)
+            try:
+                os.remove(conf_path(name))
+            except FileNotFoundError:
+                pass
+            self.rebuild()
+
+        d.connect("response", on_response)
+        d.present(self)
+
+    def new_tunnel(self, _btn):
+        d = Adw.AlertDialog(heading=_("New tunnel"),
+                            body=_("Interface name (max 15 characters)"))
+        entry = Gtk.Entry(placeholder_text="wg0", activates_default=True)
+        d.set_extra_child(entry)
+        d.add_response("cancel", _("Cancel"))
+        d.add_response("create", _("Create"))
+        d.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
+        d.set_default_response("create")
+
+        def on_response(_d, response):
+            if response != "create":
+                return
+            name = entry.get_text().strip()
+            if not valid_name(name):
+                self.toast(
+                    _("Invalid name — letters/digits/_=+.- max 15 chars"))
+                return
+            if os.path.exists(conf_path(name)):
+                self.toast(_("{name} already exists").format(name=name))
+                return
+            EditorWindow(self, name, self._reimport).present()
+
+        d.connect("response", on_response)
+        d.present(self)
+
+    def import_conf(self, _btn):
+        dlg = Gtk.FileDialog(title=_("Import WireGuard config"))
+        ff  = Gtk.FileFilter()
+        ff.set_name("WireGuard config (*.conf)")
+        ff.add_pattern("*.conf")
+        store = Gio.ListStore.new(Gtk.FileFilter)
+        store.append(ff)
+        dlg.set_filters(store)
+
+        def on_open(d, result):
+            try:
+                gfile = d.open_finish(result)
+            except GLib.Error:
+                return
+            self._install_conf(gfile.get_path())
+
+        dlg.open(self, None, on_open)
+
+    def _install_conf(self, src):
+        base = os.path.basename(src)
+        name = base[:-5] if base.endswith(".conf") else base
+        if not valid_name(name):
+            self.toast(
+                _("Filename must be a valid interface name (max 15 chars)"))
+            return False
+        os.makedirs(CONF_DIR, exist_ok=True)
+        try:
+            text = open(src, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError) as exc:
+            self.toast(str(exc))
+            return False
+        dest = conf_path(name)
+        with open(dest, "w") as f:
+            f.write(text)
+        os.chmod(dest, 0o600)
+        self._reimport(name)
+        return True
+
+    def import_zip(self, _btn):
+        dlg = Gtk.FileDialog(title=_("Import WireGuard .zip bundle"))
+        ff  = Gtk.FileFilter()
+        ff.set_name("ZIP bundle (*.zip)")
+        ff.add_pattern("*.zip")
+        store = Gio.ListStore.new(Gtk.FileFilter)
+        store.append(ff)
+        dlg.set_filters(store)
+
+        def on_open(d, result):
+            try:
+                gfile = d.open_finish(result)
+            except GLib.Error:
+                return
+            self._import_zip_file(gfile.get_path())
+
+        dlg.open(self, None, on_open)
+
+    def _import_zip_file(self, path):
+        imported, skipped = [], []
+        try:
+            with zipfile.ZipFile(path) as zf:
+                for entry in zf.namelist():
+                    if not entry.endswith(".conf"):
+                        continue
+                    base = os.path.basename(entry)
+                    name = base[:-5]
+                    if not valid_name(name):
+                        skipped.append(base)
+                        continue
+                    try:
+                        text = zf.read(entry).decode("utf-8")
+                    except (UnicodeDecodeError, KeyError):
+                        skipped.append(base)
+                        continue
+                    os.makedirs(CONF_DIR, exist_ok=True)
+                    dest = conf_path(name)
+                    with open(dest, "w") as f:
+                        f.write(text)
+                    os.chmod(dest, 0o600)
+                    nmcli("connection", "delete", name)
+                    ok, _ = nmcli("connection", "import", "type",
+                                  "wireguard", "file", dest)
+                    (imported if ok else skipped).append(name)
+        except zipfile.BadZipFile:
+            self.toast(_("Not a valid ZIP file"))
+            return
+
+        self.rebuild()
+        parts = []
+        if imported:
+            parts.append(_("{n} imported").format(n=len(imported)))
+        if skipped:
+            parts.append(_("{n} skipped").format(n=len(skipped)))
+        self.toast(", ".join(parts) or _("Nothing imported"))
+
+
+# ---------------------------------------------------------------- application
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id=APP_ID,
+                         flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
+
+    def do_activate(self):
+        win = self.get_active_window() or MainWindow(self)
+        win.present()
+
+
+if __name__ == "__main__":
+    if "--version" in sys.argv:
+        print(f"wirefox {VERSION}")
+        sys.exit(0)
+    if subprocess.run(["which", "nmcli"], capture_output=True).returncode != 0:
+        sys.exit(
+            "NetworkManager (nmcli) is required: sudo apt install network-manager")
+    sys.exit(App().run(sys.argv))

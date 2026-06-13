@@ -1,0 +1,126 @@
+# Wirefox — WireGuard GUI
+# Copyright (C) 2026 Daniël Vos
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: wirefox 0.2.0\n"
+"Report-Msgid-Bugs-To: https://github.com/nozem79/wirefox/issues\n"
+"POT-Creation-Date: 2026-06-12\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "{s}s ago"
+msgstr ""
+
+msgid "{m}m ago"
+msgstr ""
+
+msgid "{h}h ago"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Save failed"
+msgstr ""
+
+msgid "No tunnels"
+msgstr ""
+
+msgid "Import a .conf file or create a new tunnel.\nConfigs live in {CONF_DIR}"
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Missing config"
+msgstr ""
+
+msgid "Inactive"
+msgstr ""
+
+msgid "AllowedIPs catches all traffic but no DNS is set — possible DNS leak"
+msgstr ""
+
+msgid "Edit config"
+msgstr ""
+
+msgid "Delete tunnel"
+msgstr ""
+
+msgid "Import .conf"
+msgstr ""
+
+msgid "Import .zip bundle"
+msgstr ""
+
+msgid "New tunnel"
+msgstr ""
+
+msgid "Start on login"
+msgstr ""
+
+msgid "Show Wirefox"
+msgstr ""
+
+msgid "Quit"
+msgstr ""
+
+msgid "Autostart enabled"
+msgstr ""
+
+msgid "Autostart disabled"
+msgstr ""
+
+msgid "No local config — opening template in editor"
+msgstr ""
+
+msgid "Saved {name}.conf"
+msgstr ""
+
+msgid "Delete {name}?"
+msgstr ""
+
+msgid "Removes the tunnel from NetworkManager and deletes the local config file."
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Interface name (max 15 characters)"
+msgstr ""
+
+msgid "Create"
+msgstr ""
+
+msgid "Invalid name — letters/digits/_=+.- max 15 chars"
+msgstr ""
+
+msgid "{name} already exists"
+msgstr ""
+
+msgid "Import WireGuard config"
+msgstr ""
+
+msgid "Filename must be a valid interface name (max 15 chars)"
+msgstr ""
+
+msgid "Import WireGuard .zip bundle"
+msgstr ""
+
+msgid "Not a valid ZIP file"
+msgstr ""
+
+msgid "{n} imported"
+msgstr ""
+
+msgid "{n} skipped"
+msgstr ""
+
+msgid "Nothing imported"
+msgstr ""

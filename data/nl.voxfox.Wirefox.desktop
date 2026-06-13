@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Wirefox
+GenericName=WireGuard Client
+GenericName[nl]=WireGuard-client
+Comment=Simple rootless WireGuard GUI
+Comment[nl]=Eenvoudige WireGuard GUI zonder rootrechten
+Exec=wirefox
+Icon=nl.voxfox.Wirefox
+Terminal=false
+Type=Application
+Categories=Network;Settings;GTK;
+Keywords=wireguard;vpn;tunnel;network;
+StartupNotify=true
