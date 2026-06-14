@@ -1,6 +1,6 @@
 # Wirefox 🦊
 
-**A simple, rootless WireGuard GUI for Debian and Ubuntu.**
+**A simple, WireGuard GUI for Ubuntu and Debian based systems.**
 
 Wirefox is a lightweight GTK4/libadwaita desktop client for managing
 WireGuard tunnels through NetworkManager.
