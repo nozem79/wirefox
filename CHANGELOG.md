@@ -15,3 +15,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 - Live IP address, RX/TX traffic and last handshake time
 - DNS-leak warning badge
 - Dutch (nl) translation via gettext
+
+## 0.1.2 (2026-06-14)
+
+### Changed
+- Toggle knop vervangt de Gtk.Switch sleepbalk — één klik start of stopt de tunnel
+- Knop toont "Start" (groen) of "Stop" (rood) afhankelijk van de status
+
+### Fixed
+- Tunnel herverbindt automatisch na standby / slaapstand (autoconnect via NetworkManager)

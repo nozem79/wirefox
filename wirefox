@@ -28,7 +28,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib, Gio
 
-VERSION    = "0.1.1"
+VERSION    = "0.1.2"
 APP_ID     = "nl.voxfox.Wirefox"
 CONF_DIR   = os.path.expanduser("~/.config/wirefox")
 LOCALE_DIR = "/usr/share/locale"
@@ -332,27 +332,40 @@ class MainWindow(Adw.ApplicationWindow):
             del_btn.add_css_class("flat")
             del_btn.connect("clicked", self._delete_tunnel, name)
 
-            switch = Gtk.Switch(valign=Gtk.Align.CENTER,
-                                active=nm.get(name, False))
-            switch.connect("notify::active", self._on_switch, name)
+            active = nm.get(name, False)
+            toggle = Gtk.Button(
+                label=_("Stop") if active else _("Start"),
+                valign=Gtk.Align.CENTER,
+                width_request=72,
+            )
+            toggle.add_css_class("pill")
+            if active:
+                toggle.add_css_class("destructive-action")
+            else:
+                toggle.add_css_class("suggested-action")
+            toggle.connect("clicked", self._on_toggle, name)
 
             row.add_suffix(edit_btn)
             row.add_suffix(del_btn)
-            row.add_suffix(switch)
-            row.set_activatable_widget(switch)
+            row.add_suffix(toggle)
             self.listbox.append(row)
-            self.rows[name] = (row, switch)
+            self.rows[name] = (row, toggle)
 
         self._update_rows(nm)
 
     def _update_rows(self, nm=None):
         if nm is None:
             nm = nm_wireguard_connections()
-        for name, (row, switch) in self.rows.items():
+        for name, (row, toggle) in self.rows.items():
             active = nm.get(name, False)
-            switch.handler_block_by_func(self._on_switch)
-            switch.set_active(active)
-            switch.handler_unblock_by_func(self._on_switch)
+            # update toggle button label and style
+            toggle.set_label(_("Stop") if active else _("Start"))
+            toggle.remove_css_class("suggested-action")
+            toggle.remove_css_class("destructive-action")
+            if active:
+                toggle.add_css_class("destructive-action")
+            else:
+                toggle.add_css_class("suggested-action")
             if active:
                 iface, ip = nm_connection_details(name)
                 parts = []
@@ -382,10 +395,10 @@ class MainWindow(Adw.ApplicationWindow):
     def toast(self, msg):
         self.toast_overlay.add_toast(Adw.Toast(title=msg, timeout=4))
 
-    def _on_switch(self, switch, _pspec, name):
-        switch.set_sensitive(False)
-        want_up = switch.get_active()
+    def _on_toggle(self, btn, name):
+        btn.set_sensitive(False)
         nm = nm_wireguard_connections()
+        want_up = name not in nm or not nm.get(name, False)
 
         def do_it():
             if want_up:
@@ -394,7 +407,7 @@ class MainWindow(Adw.ApplicationWindow):
                                     "wireguard", "file", conf_path(name))
                     if not ok:
                         GLib.idle_add(self.toast, f"Import failed: {out}")
-                        GLib.idle_add(switch.set_sensitive, True)
+                        GLib.idle_add(btn.set_sensitive, True)
                         GLib.idle_add(self._update_rows)
                         return
                 ok, out = nmcli("connection", "up", name)
@@ -403,7 +416,7 @@ class MainWindow(Adw.ApplicationWindow):
             if not ok:
                 msg = out.splitlines()[-1] if out else "nmcli failed"
                 GLib.idle_add(self.toast, msg)
-            GLib.idle_add(switch.set_sensitive, True)
+            GLib.idle_add(btn.set_sensitive, True)
             GLib.idle_add(self._update_rows)
 
         threading.Thread(target=do_it, daemon=True).start()
@@ -417,8 +430,13 @@ class MainWindow(Adw.ApplicationWindow):
                         "file", conf_path(name))
         if not ok:
             self.toast(f"Import failed: {out}")
-        elif was_active:
-            nmcli("connection", "up", name)
+        else:
+            # auto-reconnect after standby / network drop
+            nmcli("connection", "modify", name,
+                  "connection.autoconnect", "yes",
+                  "connection.autoconnect-retries", "0")
+            if was_active:
+                nmcli("connection", "up", name)
         self.rebuild()
         self.toast(_("Saved {name}.conf").format(name=name))
 
