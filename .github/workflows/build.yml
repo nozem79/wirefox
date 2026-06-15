@@ -14,19 +14,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y gettext lintian
-
       - name: Syntax check
         run: python3 -m py_compile wirefox
 
       - name: Build .deb
         run: |
-          sudo apt-get install -y gettext
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gettext dpkg-dev
           ./build-deb.sh
 
-      - name: Lint package
-        run: lintian dist/*.deb || true
+      - name: Lint
+        run: |
+          sudo apt-get install -y -qq lintian
+          lintian dist/*.deb || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -39,4 +39,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.deb
-          generate_release_notes: false

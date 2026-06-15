@@ -26,7 +26,15 @@ for s in 64 128 256 512; do
 done
 
 # --- translations --------------------------------------------------------
-msgfmt po/nl.po -o "$ROOT/usr/share/locale/nl/LC_MESSAGES/wirefox.mo"
+# compile .po to .mo (requires gettext), fall back to pre-compiled .mo
+if command -v msgfmt &>/dev/null; then
+  msgfmt po/nl.po -o "$ROOT/usr/share/locale/nl/LC_MESSAGES/wirefox.mo"
+elif [ -f po/nl/LC_MESSAGES/wirefox.mo ]; then
+  install -m 0644 po/nl/LC_MESSAGES/wirefox.mo \
+    "$ROOT/usr/share/locale/nl/LC_MESSAGES/wirefox.mo"
+else
+  echo "Warning: msgfmt not found and no pre-compiled .mo — skipping translation"
+fi
 
 # --- docs ----------------------------------------------------------------
 cat > "$ROOT/usr/share/doc/wirefox/copyright" << COPY
@@ -52,20 +60,18 @@ Version: ${VERSION}-1
 Section: net
 Priority: optional
 Architecture: all
-Depends: python3, python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, network-manager, gir1.2-ayatanaappindicator3-0.1
+Depends: python3, python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, network-manager
 Recommends: wireguard-tools
 Installed-Size: ${SIZE}
 Maintainer: Daniël Vos <info@voxfox.nl>
 Homepage: https://github.com/nozem79/wirefox
-Description: simple rootless WireGuard GUI (GTK4)
+Description: simple WireGuard GUI for Ubuntu and Debian based systems
  Wirefox is a lightweight GTK4/libadwaita desktop client for managing
- WireGuard tunnels through NetworkManager. Because all privileged
- operations go through NetworkManager and polkit, no root rights are
- required to activate, deactivate or edit tunnels.
+ WireGuard tunnels through NetworkManager. No root rights required.
  .
- Features: tray icon, autostart, one-switch tunnel control, built-in
- config editor, bulk .zip import, live traffic and handshake time,
- DNS-leak warning, Dutch translation.
+ Features: one-click tunnel control, built-in config editor,
+ bulk .zip import, live traffic and handshake time, DNS-leak warning,
+ Dutch translation.
 CTRL
 
 dpkg-deb --root-owner-group --build "$ROOT" "dist/${PKG}.deb"
