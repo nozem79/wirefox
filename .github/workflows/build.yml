@@ -11,22 +11,20 @@ permissions:
 jobs:
   deb:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
-
-      - name: Syntax check
-        run: python3 -m py_compile wirefox
 
       - name: Build .deb
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq gettext dpkg-dev
-          ./build-deb.sh
+          sudo apt-get install -y gettext dpkg lintian
+          python3 -m py_compile wirefox
+          bash build-deb.sh
 
       - name: Lint
-        run: |
-          sudo apt-get install -y -qq lintian
-          lintian dist/*.deb || true
+        run: lintian dist/*.deb || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
