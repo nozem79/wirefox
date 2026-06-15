@@ -21,7 +21,9 @@ jobs:
         run: python3 -m py_compile wirefox
 
       - name: Build .deb
-        run: ./build-deb.sh
+        run: |
+          sudo apt-get install -y gettext
+          ./build-deb.sh
 
       - name: Lint package
         run: lintian dist/*.deb || true
