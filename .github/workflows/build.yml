@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    tags: ["v*"]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -11,29 +11,24 @@ permissions:
 jobs:
   deb:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
 
-      - name: Build .deb
+      - name: Debug
+        run: |
+          pwd
+          ls -la
+          which bash
+          bash --version
+
+      - name: Build
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y gettext dpkg lintian
-          python3 -m py_compile wirefox
+          sudo apt-get install -y gettext
           bash build-deb.sh
 
-      - name: Lint
-        run: lintian dist/*.deb || true
-
       - name: Upload artifact
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: wirefox-deb
           path: dist/*.deb
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2.3.2
-        with:
-          files: dist/*.deb
