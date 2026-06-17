@@ -24,3 +24,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 
 ### Fixed
 - Tunnel herverbindt automatisch na standby / slaapstand (autoconnect via NetworkManager)
+
+## 0.1.3 (2026-06-16)
+
+### Fixed
+- Tunnel herstarte automatisch na standby ook als de gebruiker hem handmatig
+  had uitgeschakeld. Autoconnect wordt nu alleen ingeschakeld als de gebruiker
+  op Start klikt, en uitgeschakeld als de gebruiker op Stop klikt.

@@ -28,7 +28,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib, Gio
 
-VERSION    = "0.1.2"
+VERSION    = "0.1.3"
 APP_ID     = "nl.voxfox.Wirefox"
 CONF_DIR   = os.path.expanduser("~/.config/wirefox")
 LOCALE_DIR = "/usr/share/locale"
@@ -410,8 +410,15 @@ class MainWindow(Adw.ApplicationWindow):
                         GLib.idle_add(btn.set_sensitive, True)
                         GLib.idle_add(self._update_rows)
                         return
+                # enable autoconnect when user starts the tunnel
+                nmcli("connection", "modify", name,
+                      "connection.autoconnect", "yes",
+                      "connection.autoconnect-retries", "0")
                 ok, out = nmcli("connection", "up", name)
             else:
+                # disable autoconnect when user explicitly stops the tunnel
+                nmcli("connection", "modify", name,
+                      "connection.autoconnect", "no")
                 ok, out = nmcli("connection", "down", name)
             if not ok:
                 msg = out.splitlines()[-1] if out else "nmcli failed"
@@ -431,10 +438,6 @@ class MainWindow(Adw.ApplicationWindow):
         if not ok:
             self.toast(f"Import failed: {out}")
         else:
-            # auto-reconnect after standby / network drop
-            nmcli("connection", "modify", name,
-                  "connection.autoconnect", "yes",
-                  "connection.autoconnect-retries", "0")
             if was_active:
                 nmcli("connection", "up", name)
         self.rebuild()
