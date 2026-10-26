@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wirefox 0.2.1\n"
+"Project-Id-Version: wirefox 0.2.2\n"
 "PO-Revision-Date: 2026-10-26 09:30+0100\n"
 "Last-Translator: Daniël Vos <info@voxfox.nl>\n"
 "Language-Team: Dutch\n"

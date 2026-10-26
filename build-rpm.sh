@@ -49,6 +49,9 @@ BuildArch:      noarch
 
 Requires:       python3
 Requires:       python3-gobject
+# cairo-1.0.typelib (needed to load GTK 4) lives here; since Fedora 43
+# python3-gobject no longer pulls it in by itself
+Requires:       gobject-introspection
 Requires:       gtk4 >= 4.10
 Requires:       libadwaita >= 1.5
 Requires:       NetworkManager

@@ -24,18 +24,26 @@ import sys
 import threading
 import zipfile
 
-VERSION    = "0.2.1"
+VERSION    = "0.2.2"
 
 # --version must work without GTK (scripts, packaging checks)
 if __name__ == "__main__" and "--version" in sys.argv:
     print(f"wirefox {VERSION}")
     sys.exit(0)
 
-import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
-gi.require_version("Adw", "1")
-from gi.repository import Gtk, Gdk, Adw, GLib, Gio
+try:
+    import gi
+    gi.require_version("Gtk", "4.0")
+    gi.require_version("Gdk", "4.0")
+    gi.require_version("Adw", "1")
+    from gi.repository import Gtk, Gdk, Adw, GLib, Gio
+except (ImportError, ValueError) as exc:
+    # e.g. a missing typelib: show what to install instead of a traceback
+    sys.exit(f"Wirefox cannot load GTK 4 / libadwaita: {exc}\n"
+             "  Debian/Ubuntu: sudo apt install python3-gi gir1.2-gtk-4.0 "
+             "gir1.2-adw-1\n"
+             "  Fedora:        sudo dnf install python3-gobject gtk4 "
+             "libadwaita gobject-introspection")
 
 APP_ID     = "nl.voxfox.Wirefox"
 CONF_DIR   = os.path.expanduser("~/.config/wirefox")

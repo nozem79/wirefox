@@ -141,3 +141,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versioning foll
 - `iproute2` toegevoegd als afhankelijkheid (Wirefox gebruikt `ip`).
 - Build-scripts nemen elke `po/*.po` mee; het vooraf gecompileerde `.mo`
   is uit de repository gehaald.
+
+## 0.2.2 (2026-10-26)
+
+### Fixed
+- **Fedora: Wirefox kon GTK niet laden op een kale installatie**
+  ("Typelib file for namespace 'cairo' not found"). Sinds Fedora 43 trekt
+  `python3-gobject` het pakket `gobject-introspection` niet meer mee, terwijl
+  het cairo-bestand dat GTK 4 nodig heeft daarin zit. Het `.rpm` vraagt dat
+  pakket nu zelf. Gevonden door de nieuwe Fedora-test in GitHub Actions;
+  daardoor is er geen release 0.2.1 verschenen.
+- Kan GTK of libadwaita niet geladen worden, dan toont Wirefox nu welke
+  pakketten je moet installeren in plaats van een traceback.
