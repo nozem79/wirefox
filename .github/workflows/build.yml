@@ -1,39 +1,108 @@
 name: build
 
+# On every push to main: build and test both packages.
+# On a version tag (v0.2.1, ...): also publish a GitHub release with the
+# .deb and the .rpm attached. The release is only made when all tests pass.
 on:
   push:
     branches: ["main"]
     tags: ["v*"]
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  deb:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
-        run: |
-          git clone https://github.com/${{ github.repository }} repo
-          cd repo
-          git checkout ${{ github.sha }}
+      - uses: actions/checkout@v7
 
-      - name: Build
+      - name: Install build tools
         run: |
-          cd repo
           sudo apt-get update -qq
-          sudo apt-get install -y gettext
+          sudo apt-get install -y -qq gettext rpm lintian
+
+      - name: Check code and translations
+        run: |
+          python3 -m py_compile wirefox
+          python3 wirefox --version
+          msgfmt --check --statistics -o /dev/null po/nl.po
+
+      - name: Check that the tag matches VERSION in the code
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          code_version="v$(python3 wirefox --version | cut -d' ' -f2)"
+          if [ "$code_version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match VERSION in wirefox ($code_version)"
+            exit 1
+          fi
+
+      - name: Build .deb and .rpm
+        run: |
           bash build-deb.sh
+          bash build-rpm.sh
+          ls -l dist/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wirefox-deb
-          path: repo/dist/*.deb
+      - name: Lint .deb
+        run: lintian dist/*.deb || true
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v7
         with:
-          files: repo/dist/*.deb
+          name: packages
+          path: |
+            dist/*.deb
+            dist/*.rpm
+          if-no-files-found: error
+
+  test-ubuntu:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+
+      - name: Install the .deb and check it
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ./wirefox_*_all.deb
+          wirefox --version
+          dpkg-deb -c ./wirefox_*_all.deb | grep -q 'LC_MESSAGES/wirefox.mo'
+          /usr/bin/python3 -c "import gi; gi.require_version('Gtk','4.0'); gi.require_version('Adw','1'); from gi.repository import Gtk, Adw; print('GTK', Gtk.get_minor_version(), 'Adw', Adw.get_minor_version())"
+
+  test-fedora:
+    needs: build
+    runs-on: ubuntu-24.04
+    container: fedora:latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+
+      - name: Install the .rpm and check it
+        run: |
+          dnf install -y ./wirefox-*.noarch.rpm
+          wirefox --version
+          rpm -qlp ./wirefox-*.noarch.rpm | grep -q 'LC_MESSAGES/wirefox.mo'
+          /usr/bin/python3 -c "import gi; gi.require_version('Gtk','4.0'); gi.require_version('Adw','1'); from gi.repository import Gtk, Adw; print('GTK', Gtk.get_minor_version(), 'Adw', Adw.get_minor_version())"
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test-ubuntu, test-fedora]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: Wirefox ${{ github.ref_name }}
+          files: |
+            wirefox_*_all.deb
+            wirefox-*.noarch.rpm
+          fail_on_unmatched_files: true

@@ -4,123 +4,163 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wirefox 0.2.0\n"
+"Project-Id-Version: wirefox 0.2.1\n"
+"PO-Revision-Date: 2026-10-26 09:30+0100\n"
+"Last-Translator: Daniël Vos <info@voxfox.nl>\n"
+"Language-Team: Dutch\n"
+"Report-Msgid-Bugs-To: https://github.com/nozem79/wirefox/issues\n"
+"POT-Creation-Date: 2026-10-26 09:22+0100\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "{s}s ago"
-msgstr "{s}s geleden"
-
-msgid "{m}m ago"
-msgstr "{m}m geleden"
-
-msgid "{h}h ago"
-msgstr "{h}u geleden"
-
+#: wirefox:236
 msgid "Save"
 msgstr "Opslaan"
 
+#: wirefox:274
 msgid "Save failed"
 msgstr "Opslaan mislukt"
 
-msgid "No tunnels"
-msgstr "Geen tunnels"
-
-msgid "Import a .conf file or create a new tunnel.\nConfigs live in {CONF_DIR}"
-msgstr "Importeer een .conf-bestand of maak een nieuwe tunnel.\nConfigs staan in {CONF_DIR}"
-
-msgid "Active"
-msgstr "Actief"
-
-msgid "Missing config"
-msgstr "Configuratie ontbreekt"
-
-msgid "Inactive"
-msgstr "Inactief"
-
-msgid "AllowedIPs catches all traffic but no DNS is set — possible DNS leak"
-msgstr "AllowedIPs vangt al het verkeer maar er is geen DNS ingesteld — mogelijke DNS-lek"
-
-msgid "Edit config"
-msgstr "Configuratie bewerken"
-
-msgid "Delete tunnel"
-msgstr "Tunnel verwijderen"
-
-msgid "Import .conf"
-msgstr ".conf importeren"
-
-msgid "Import .zip bundle"
-msgstr ".zip-bundel importeren"
-
+#: wirefox:297 wirefox:552
 msgid "New tunnel"
 msgstr "Nieuwe tunnel"
 
-msgid "Start on login"
-msgstr "Starten bij aanmelden"
+#: wirefox:302
+msgid "Import .conf"
+msgstr ".conf importeren"
 
-msgid "Show Wirefox"
-msgstr "Wirefox tonen"
+#: wirefox:307
+msgid "Import .zip bundle"
+msgstr ".zip-bundel importeren"
 
-msgid "Quit"
-msgstr "Afsluiten"
+#: wirefox:321
+msgid "No tunnels"
+msgstr "Geen tunnels"
 
-msgid "Autostart enabled"
-msgstr "Autostart ingeschakeld"
+#. translate the template first, fill in the path afterwards
+#: wirefox:323
+#, python-brace-format
+msgid ""
+"Import a .conf file or create a new tunnel.\n"
+"Configs live in {CONF_DIR}"
+msgstr ""
+"Importeer een .conf-bestand of maak een nieuwe tunnel.\n"
+"Configs staan in {CONF_DIR}"
 
-msgid "Autostart disabled"
-msgstr "Autostart uitgeschakeld"
+#: wirefox:366
+msgid "AllowedIPs catches all traffic but no DNS is set — possible DNS leak"
+msgstr ""
+"AllowedIPs vangt al het verkeer maar er is geen DNS ingesteld — mogelijke "
+"DNS-lek"
 
-msgid "No local config — opening template in editor"
-msgstr "Geen lokale config — sjabloon openen in editor"
+#: wirefox:375
+msgid "Edit config"
+msgstr "Configuratie bewerken"
 
+#: wirefox:381
+msgid "Delete tunnel"
+msgstr "Tunnel verwijderen"
+
+#: wirefox:387 wirefox:408
+msgid "Stop"
+msgstr "Stop"
+
+#: wirefox:387 wirefox:408
+msgid "Start"
+msgstr "Start"
+
+#: wirefox:426
+msgid "Active"
+msgstr "Actief"
+
+#: wirefox:432
+msgid "Inactive"
+msgstr "Inactief"
+
+#: wirefox:434
+msgid "Missing config"
+msgstr "Configuratie ontbreekt"
+
+#: wirefox:490 wirefox:519
+#, python-brace-format
+msgid "Import failed: {err}"
+msgstr "Importeren mislukt: {err}"
+
+#: wirefox:517
+#, python-brace-format
 msgid "Saved {name}.conf"
 msgstr "{name}.conf opgeslagen"
 
+#: wirefox:524
+msgid "No local config — opening template in editor"
+msgstr "Geen lokale config — sjabloon openen in editor"
+
+#: wirefox:529
+#, python-brace-format
 msgid "Delete {name}?"
 msgstr "{name} verwijderen?"
 
-msgid "Removes the tunnel from NetworkManager and deletes the local config file."
-msgstr "Verwijdert de tunnel uit NetworkManager en wist het lokale configuratiebestand."
+#: wirefox:530
+msgid ""
+"Removes the tunnel from NetworkManager and deletes the local config file."
+msgstr ""
+"Verwijdert de tunnel uit NetworkManager en wist het lokale "
+"configuratiebestand."
 
+#: wirefox:533 wirefox:556
 msgid "Cancel"
 msgstr "Annuleren"
 
+#: wirefox:534
 msgid "Delete"
 msgstr "Verwijderen"
 
+#: wirefox:553
 msgid "Interface name (max 15 characters)"
 msgstr "Interfacenaam (max. 15 tekens)"
 
+#: wirefox:557
 msgid "Create"
 msgstr "Aanmaken"
 
+#: wirefox:567
 msgid "Invalid name — letters/digits/_=+.- max 15 chars"
 msgstr "Ongeldige naam — letters/cijfers/_=+.- max. 15 tekens"
 
+#: wirefox:570
+#, python-brace-format
 msgid "{name} already exists"
 msgstr "{name} bestaat al"
 
+#: wirefox:578
 msgid "Import WireGuard config"
 msgstr "WireGuard-configuratie importeren"
 
+#: wirefox:600
 msgid "Filename must be a valid interface name (max 15 chars)"
 msgstr "Bestandsnaam moet een geldige interfacenaam zijn (max. 15 tekens)"
 
+#: wirefox:613
 msgid "Import WireGuard .zip bundle"
 msgstr "WireGuard .zip-bundel importeren"
 
+#: wirefox:654
 msgid "Not a valid ZIP file"
 msgstr "Geen geldig ZIP-bestand"
 
+#: wirefox:660
+#, python-brace-format
 msgid "{n} imported"
 msgstr "{n} geïmporteerd"
 
+#: wirefox:662
+#, python-brace-format
 msgid "{n} skipped"
 msgstr "{n} overgeslagen"
 
+#: wirefox:663
 msgid "Nothing imported"
 msgstr "Niets geïmporteerd"

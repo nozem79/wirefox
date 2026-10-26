@@ -1,126 +1,161 @@
-# Wirefox — WireGuard GUI
-# Copyright (C) 2026 Daniël Vos
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Daniël Vos
+# This file is distributed under the same license as the wirefox package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: wirefox 0.2.0\n"
+"Project-Id-Version: wirefox 0.2.1\n"
 "Report-Msgid-Bugs-To: https://github.com/nozem79/wirefox/issues\n"
-"POT-Creation-Date: 2026-06-12\n"
+"POT-Creation-Date: 2026-10-26 09:22+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "{s}s ago"
-msgstr ""
-
-msgid "{m}m ago"
-msgstr ""
-
-msgid "{h}h ago"
-msgstr ""
-
+#: wirefox:236
 msgid "Save"
 msgstr ""
 
+#: wirefox:274
 msgid "Save failed"
 msgstr ""
 
-msgid "No tunnels"
-msgstr ""
-
-msgid "Import a .conf file or create a new tunnel.\nConfigs live in {CONF_DIR}"
-msgstr ""
-
-msgid "Active"
-msgstr ""
-
-msgid "Missing config"
-msgstr ""
-
-msgid "Inactive"
-msgstr ""
-
-msgid "AllowedIPs catches all traffic but no DNS is set — possible DNS leak"
-msgstr ""
-
-msgid "Edit config"
-msgstr ""
-
-msgid "Delete tunnel"
-msgstr ""
-
-msgid "Import .conf"
-msgstr ""
-
-msgid "Import .zip bundle"
-msgstr ""
-
+#: wirefox:297 wirefox:552
 msgid "New tunnel"
 msgstr ""
 
-msgid "Start on login"
+#: wirefox:302
+msgid "Import .conf"
 msgstr ""
 
-msgid "Show Wirefox"
+#: wirefox:307
+msgid "Import .zip bundle"
 msgstr ""
 
-msgid "Quit"
+#: wirefox:321
+msgid "No tunnels"
 msgstr ""
 
-msgid "Autostart enabled"
+#. translate the template first, fill in the path afterwards
+#: wirefox:323
+#, python-brace-format
+msgid ""
+"Import a .conf file or create a new tunnel.\n"
+"Configs live in {CONF_DIR}"
 msgstr ""
 
-msgid "Autostart disabled"
+#: wirefox:366
+msgid "AllowedIPs catches all traffic but no DNS is set — possible DNS leak"
 msgstr ""
 
-msgid "No local config — opening template in editor"
+#: wirefox:375
+msgid "Edit config"
 msgstr ""
 
+#: wirefox:381
+msgid "Delete tunnel"
+msgstr ""
+
+#: wirefox:387 wirefox:408
+msgid "Stop"
+msgstr ""
+
+#: wirefox:387 wirefox:408
+msgid "Start"
+msgstr ""
+
+#: wirefox:426
+msgid "Active"
+msgstr ""
+
+#: wirefox:432
+msgid "Inactive"
+msgstr ""
+
+#: wirefox:434
+msgid "Missing config"
+msgstr ""
+
+#: wirefox:490 wirefox:519
+#, python-brace-format
+msgid "Import failed: {err}"
+msgstr ""
+
+#: wirefox:517
+#, python-brace-format
 msgid "Saved {name}.conf"
 msgstr ""
 
+#: wirefox:524
+msgid "No local config — opening template in editor"
+msgstr ""
+
+#: wirefox:529
+#, python-brace-format
 msgid "Delete {name}?"
 msgstr ""
 
-msgid "Removes the tunnel from NetworkManager and deletes the local config file."
+#: wirefox:530
+msgid ""
+"Removes the tunnel from NetworkManager and deletes the local config file."
 msgstr ""
 
+#: wirefox:533 wirefox:556
 msgid "Cancel"
 msgstr ""
 
+#: wirefox:534
 msgid "Delete"
 msgstr ""
 
+#: wirefox:553
 msgid "Interface name (max 15 characters)"
 msgstr ""
 
+#: wirefox:557
 msgid "Create"
 msgstr ""
 
+#: wirefox:567
 msgid "Invalid name — letters/digits/_=+.- max 15 chars"
 msgstr ""
 
+#: wirefox:570
+#, python-brace-format
 msgid "{name} already exists"
 msgstr ""
 
+#: wirefox:578
 msgid "Import WireGuard config"
 msgstr ""
 
+#: wirefox:600
 msgid "Filename must be a valid interface name (max 15 chars)"
 msgstr ""
 
+#: wirefox:613
 msgid "Import WireGuard .zip bundle"
 msgstr ""
 
+#: wirefox:654
 msgid "Not a valid ZIP file"
 msgstr ""
 
+#: wirefox:660
+#, python-brace-format
 msgid "{n} imported"
 msgstr ""
 
+#: wirefox:662
+#, python-brace-format
 msgid "{n} skipped"
 msgstr ""
 
+#: wirefox:663
 msgid "Nothing imported"
 msgstr ""
